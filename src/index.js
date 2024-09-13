@@ -1,8 +1,8 @@
 import dotenv from 'dotenv'
 import connect from './db/index.js'
-dotenv.config({path:"/env"})
 import { app } from './app.js'
 import { PORT } from './constant.js'
+dotenv.config({path:"/env"})
 connect()
 .then(()=>{
     try {
