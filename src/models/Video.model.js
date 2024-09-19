@@ -12,7 +12,7 @@ const VideoSchema=new mongoose.Schema({
     },
     owner:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"user"
+        ref:"User"
     },
     title:{
         type:String,

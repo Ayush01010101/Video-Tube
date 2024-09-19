@@ -14,8 +14,10 @@ app.use(json({limit:"16kb"}))
 
 app.use(urlencoded({
     limit:"16kb",
+    extended:true
+
     
-}))
+}))     
 
 app.use(cookieParser())
 app.use(express.static("Public"))
