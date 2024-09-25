@@ -5,6 +5,7 @@ import { Uploadfileoncloudinary } from "../fileupload/fileupload.js";
 import { ApiResponce } from "../utils/ApiResponce.js";
 import { Destroyfileoncloudinary } from "../fileupload/fileupload.js";
 import jwt from 'jsonwebtoken'
+import mongoose from "mongoose";
 
 
 const Signupuser=AsyncHandler(async (req,res)=>{
@@ -45,7 +46,7 @@ const Signupuser=AsyncHandler(async (req,res)=>{
         throw new ApiError(403,"avatar image is required!!")
     }
 
-    
+        
     
     
     
@@ -142,8 +143,8 @@ const Loginuser= AsyncHandler(async (req,res)=>{
     user.refreshtoken = refreshtoken
     await user.save({validateBeforeSave:false})
 
-    const LoggedInUser=await User.findById(user._id).select("-password -refreshtoken")
-
+    const LoggedInUser=await User.findById(user._id).select("-password -refreshtoken");
+    
     const options ={
         httpOnly:true,
         secure:true
@@ -180,7 +181,9 @@ const LoggedoutUser=AsyncHandler(async(req,res)=>{
         req.user._id,
        
         {
-            $set:{refreshtoken:undefined}
+            $unset:{
+                refreshtoken:1
+            }
         },
         {
             new:true
@@ -467,28 +470,142 @@ const Changecoverimage=AsyncHandler(async(req,res)=>{
 
 const GetUserData=AsyncHandler(async (req,res)=>{   
     const {username}=req.params
-
+    console.log(req.params)
+    // console.log(req.params)
     if(!username){
         throw new ApiError(400,"Username is required!!")
+    }   
+
+
+    //need to understand this concept
+    const user = await User.aggregate([
+            {
+                $match:{
+                    username
+                }
+            },
+            {
+                $lookup:{
+                    from:"subscriptions",
+                    localField:'_id',
+                    foreignField:"channel",
+                    as:"subscribers"
+                }
+
+            },
+            {
+                $lookup:{
+                    from:"subscriptions",
+                    localField:"_id",
+                    foreignField:"subscriber",
+                    as:"subscribeto"
+
+                }                                                                                     
+            },
+            {
+                $addFields:{
+                subscribercount:{
+                    $size:"$subscribers"
+                },
+                subscribertocount:{
+                    $size:"$subscribeto"
+                },
+                issubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        then:true,
+                        else:false
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                fullname:1,
+                email:1,
+                username:1,
+                subscribercount:1,
+                subscribertocount:1,
+                isfollowed:1,
+                avatar:1,
+                createdAt:1
+
+
+
+            }   
+        }
+    ]) 
+
+   
+    
+
+    if(!user.length){
+        throw new ApiError(400,"Invalid Username (Database)")
     }
 
-    await User.aggregate([
+    return res
+    .status(200)
+    .json(
+        new ApiResponce(200,"Data Successfully Fetched!!",user[0])
+    )
+
+})
+
+
+const GetUserWatchHistory=AsyncHandler(async (req,res)=>{
+    // console.log(req.user)
+    const user=await User.aggregate([
         {
             $match:{
-                username
+                _id:new mongoose.Types.ObjectId(req.user._id)   
             }
         },
         {
             $lookup:{
-                from:"subscriptions",
-                localField:'_id',
-                foreignField:"channel",
-                as:"subscriber"
-            }
+                from:"videos",
+                localField:"watchhistory",
+                foreignField:"_id",
+                as:"Watchhistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        username:1,
+                                        fullname:1 ,
+                                        avatar:1,
+                                    }
+                                }
+                            ]
+                        }
 
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+                
+            }
         }
     ])
+
+    return res.status(200)
+    .json(
+        new ApiResponce(200,"Watch History Fetched Successfully!!",user[0])
+    )
+
 })
 
 
-export {Signupuser,Loginuser,LoggedoutUser,RefreshToken,ChangeCurrentPassword,GetCurrentUser,ChangeUsernameAndEmail,ChangeAvatar,Changecoverimage}
+
+
+export {Signupuser,Loginuser,LoggedoutUser,RefreshToken,ChangeCurrentPassword,GetCurrentUser,ChangeUsernameAndEmail,ChangeAvatar,Changecoverimage,GetUserData,GetUserWatchHistory}

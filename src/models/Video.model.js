@@ -3,11 +3,11 @@ import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2'
 
 const VideoSchema=new mongoose.Schema({
     videofile:{
-        type:String,
+        type:Object,
         required:true
     },
     thumbnail:{
-        type:String,
+        type:Object,
         required:true
     },
     owner:{
@@ -31,6 +31,7 @@ const VideoSchema=new mongoose.Schema({
         default:0
     },
     ispublic:{
+        
         type:Boolean,
         default:true
     }

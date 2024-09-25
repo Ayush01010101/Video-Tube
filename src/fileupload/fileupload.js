@@ -32,14 +32,18 @@ async function Uploadfileoncloudinary(localfile) {
 async function Destroyfileoncloudinary(public_id){
     try {
         if(!public_id){
-            throw "Public_id required"
+           console.log("public id is required")
         }
-        await cloudinary.uploader.destroy(public_id) 
-        
+        await cloudinary.uploader.destroy(public_id,{resource_type:'auto'}) 
+        return "Successfully Deleted!!"
     } catch  {
         throw "error inside Destroyfile"
     }
+    
 }
+
+
+
 
 
 
